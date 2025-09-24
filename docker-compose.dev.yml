@@ -46,6 +46,17 @@ services:
     ports:
       - "6379:6379"
 
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: whaticket-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@integracore.com
+      PGADMIN_DEFAULT_PASSWORD: Ireliaesup#2109
+    ports:
+      - 8081:80
+    depends_on:
+      - db
+
 volumes:
   postgres_data:
   redis_data:

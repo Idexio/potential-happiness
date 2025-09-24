@@ -1,0 +1,731 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Announcements {
+  id        Int       @id @default(autoincrement())
+  priority  Int?
+  title     String    @db.VarChar(255)
+  text      String
+  mediaPath String?
+  mediaName String?
+  companyId Int
+  status    Boolean?
+  createdAt DateTime  @db.Timestamptz(6)
+  updatedAt DateTime  @db.Timestamptz(6)
+  Companies Companies @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+model Baileys {
+  id         Int      @default(autoincrement())
+  whatsappId Int
+  contacts   String?
+  chats      String?
+  createdAt  DateTime @db.Timestamptz(6)
+  updatedAt  DateTime @db.Timestamptz(6)
+
+  @@id([id, whatsappId])
+}
+
+model BaileysKeys {
+  whatsappId Int
+  type       String    @db.VarChar(255)
+  key        String    @db.VarChar(255)
+  value      String
+  Whatsapps  Whatsapps @relation(fields: [whatsappId], references: [id], onDelete: Cascade)
+
+  @@id([whatsappId, type, key])
+  @@index([whatsappId, type, key], map: "idx_baileyskeys_whatsappid_type_key")
+}
+
+model CampaignSettings {
+  id        Int        @id @default(autoincrement())
+  key       String     @db.VarChar(255)
+  value     String?
+  companyId Int?
+  createdAt DateTime   @db.Timestamptz(6)
+  updatedAt DateTime   @db.Timestamptz(6)
+  Companies Companies? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+model CampaignShipping {
+  id                      Int               @id @default(autoincrement())
+  jobId                   String?           @db.VarChar(255)
+  number                  String            @db.VarChar(255)
+  message                 String
+  confirmationMessage     String?
+  confirmation            Boolean?
+  contactId               Int?
+  campaignId              Int
+  confirmationRequestedAt DateTime?         @db.Timestamptz(6)
+  confirmedAt             DateTime?         @db.Timestamptz(6)
+  deliveredAt             DateTime?         @db.Timestamptz(6)
+  createdAt               DateTime          @db.Timestamptz(6)
+  updatedAt               DateTime          @db.Timestamptz(6)
+  Campaigns               Campaigns         @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  ContactListItems        ContactListItems? @relation(fields: [contactId], references: [id], onUpdate: SetNull)
+
+  @@index([campaignId], map: "idx_cpsh_campaign_id")
+}
+
+model Campaigns {
+  id                   Int                @id @default(autoincrement())
+  name                 String             @db.VarChar(255)
+  message1             String?            @default("")
+  message2             String?            @default("")
+  message3             String?            @default("")
+  message4             String?            @default("")
+  message5             String?            @default("")
+  confirmationMessage1 String?            @default("")
+  confirmationMessage2 String?            @default("")
+  confirmationMessage3 String?            @default("")
+  confirmationMessage4 String?            @default("")
+  confirmationMessage5 String?            @default("")
+  status               String?            @db.VarChar(255)
+  confirmation         Boolean?           @default(false)
+  mediaPath            String?
+  mediaName            String?
+  companyId            Int
+  contactListId        Int?
+  whatsappId           Int?
+  scheduledAt          DateTime?          @db.Timestamptz(6)
+  completedAt          DateTime?          @db.Timestamptz(6)
+  createdAt            DateTime           @db.Timestamptz(6)
+  updatedAt            DateTime           @db.Timestamptz(6)
+  CampaignShipping     CampaignShipping[]
+  Companies            Companies          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  ContactLists         ContactLists?      @relation(fields: [contactListId], references: [id], onUpdate: SetNull)
+  Whatsapps            Whatsapps?         @relation(fields: [whatsappId], references: [id], onUpdate: SetNull)
+}
+
+model ChatMessages {
+  id        Int      @id @default(autoincrement())
+  chatId    Int
+  senderId  Int
+  message   String?  @default("")
+  mediaPath String?
+  mediaName String?
+  createdAt DateTime @db.Timestamptz(6)
+  updatedAt DateTime @db.Timestamptz(6)
+  mediaType String?
+  Chats     Chats    @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  Users     Users    @relation(fields: [senderId], references: [id], onDelete: Cascade)
+}
+
+model ChatUsers {
+  id        Int      @id @default(autoincrement())
+  chatId    Int
+  userId    Int
+  unreads   Int?     @default(0)
+  createdAt DateTime @db.Timestamptz(6)
+  updatedAt DateTime @db.Timestamptz(6)
+  Chats     Chats    @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  Users     Users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Chats {
+  id           Int            @id @default(autoincrement())
+  title        String?        @default("")
+  uuid         String?        @default("") @db.VarChar(255)
+  ownerId      Int
+  lastMessage  String?
+  companyId    Int
+  createdAt    DateTime       @db.Timestamptz(6)
+  updatedAt    DateTime       @db.Timestamptz(6)
+  ChatMessages ChatMessages[]
+  ChatUsers    ChatUsers[]
+  Companies    Companies      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  Users        Users          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+}
+
+model Companies {
+  id               Int                @id @default(autoincrement())
+  name             String             @unique @db.VarChar(255)
+  phone            String?            @db.VarChar(255)
+  email            String?            @db.VarChar(255)
+  createdAt        DateTime           @db.Timestamptz(6)
+  updatedAt        DateTime           @db.Timestamptz(6)
+  planId           Int?
+  status           Boolean?           @default(true)
+  schedules        Json?              @default("[]")
+  dueDate          DateTime?          @db.Date
+  recurrence       String?            @default("") @db.VarChar(255)
+  language         String?            @db.VarChar(255)
+  Announcements    Announcements[]
+  CampaignSettings CampaignSettings[]
+  Campaigns        Campaigns[]
+  Chats            Chats[]
+  Plans            Plans?             @relation(fields: [planId], references: [id])
+  ContactListItems ContactListItems[]
+  ContactLists     ContactLists[]
+  Contacts         Contacts[]
+  Counters         Counters[]
+  Invoices         Invoices[]
+  Messages         Messages[]
+  Queues           Queues[]
+  QuickMessages    QuickMessages[]
+  Schedules        Schedules[]
+  Settings         Settings[]         @ignore
+  Subscriptions    Subscriptions[]
+  Tags             Tags[]
+  TicketTraking    TicketTraking[]
+  Tickets          Tickets[]
+  UserRatings      UserRatings[]
+  Users            Users[]
+  Whatsapps        Whatsapps[]
+}
+
+model ContactCustomFields {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(255)
+  value     String   @db.VarChar(255)
+  contactId Int
+  createdAt DateTime @db.Timestamptz(6)
+  updatedAt DateTime @db.Timestamptz(6)
+  Contacts  Contacts @relation(fields: [contactId], references: [id], onDelete: Cascade)
+}
+
+model ContactListItems {
+  id               Int                @id @default(autoincrement())
+  name             String             @db.VarChar(255)
+  number           String             @db.VarChar(255)
+  email            String?            @db.VarChar(255)
+  contactListId    Int
+  isWhatsappValid  Boolean?           @default(false)
+  companyId        Int?
+  createdAt        DateTime           @db.Timestamptz(6)
+  updatedAt        DateTime           @db.Timestamptz(6)
+  CampaignShipping CampaignShipping[]
+  Companies        Companies?         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  ContactLists     ContactLists       @relation(fields: [contactListId], references: [id], onDelete: Cascade)
+
+  @@index([contactListId], map: "idx_ctli_contact_list_id")
+}
+
+model ContactLists {
+  id               Int                @id @default(autoincrement())
+  name             String             @db.VarChar(255)
+  companyId        Int?
+  createdAt        DateTime           @db.Timestamptz(6)
+  updatedAt        DateTime           @db.Timestamptz(6)
+  Campaigns        Campaigns[]
+  ContactListItems ContactListItems[]
+  Companies        Companies?         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+model ContactTags {
+  contactId Int
+  tagId     Int
+  createdAt DateTime @db.Timestamptz(6)
+  updatedAt DateTime @db.Timestamptz(6)
+  Contacts  Contacts @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  Tags      Tags     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([contactId, tagId], map: "unique_contact_tag")
+}
+
+model Contacts {
+  id                  Int                   @id @default(autoincrement())
+  name                String                @db.VarChar(255)
+  number              String                @db.VarChar(255)
+  profilePicUrl       String?               @db.VarChar(255)
+  createdAt           DateTime              @db.Timestamptz(6)
+  updatedAt           DateTime              @db.Timestamptz(6)
+  email               String                @default("") @db.VarChar(255)
+  isGroup             Boolean               @default(false)
+  companyId           Int?
+  channel             String?               @default("whatsapp")
+  disableBot          Boolean?              @default(false)
+  presence            String?               @default("available") @db.VarChar(255)
+  language            String?               @db.VarChar(255)
+  ContactCustomFields ContactCustomFields[]
+  ContactTags         ContactTags[]
+  Companies           Companies?            @relation(fields: [companyId], references: [id])
+  Messages            Messages[]
+  Schedules           Schedules[]
+  TicketNotes         TicketNotes[]
+  Tickets             Tickets[]
+  WhatsappLidMaps     WhatsappLidMaps[]
+
+  @@unique([number, companyId], map: "number_companyid_unique")
+  @@index([companyId], map: "idx_cont_company_id")
+}
+
+model Counters {
+  companyId    Int
+  serie        String    @db.VarChar(255)
+  timestamp    DateTime  @db.Timestamptz(6)
+  value        Int
+  day          DateTime? @default(dbgenerated("date((\"timestamp\" AT TIME ZONE 'UTC'::text))")) @db.Date
+  twelve_hours DateTime? @default(dbgenerated("((date_trunc('day'::text, (\"timestamp\" AT TIME ZONE 'UTC'::text)) + (('01:00:00'::interval * (div(EXTRACT(hour FROM (\"timestamp\" AT TIME ZONE 'UTC'::text)), (12)::numeric))::double precision) * (12)::double precision)) AT TIME ZONE 'UTC'::text)")) @db.Timestamptz(6)
+  six_hours    DateTime? @default(dbgenerated("((date_trunc('day'::text, (\"timestamp\" AT TIME ZONE 'UTC'::text)) + (('01:00:00'::interval * (div(EXTRACT(hour FROM (\"timestamp\" AT TIME ZONE 'UTC'::text)), (6)::numeric))::double precision) * (6)::double precision)) AT TIME ZONE 'UTC'::text)")) @db.Timestamptz(6)
+  three_hours  DateTime? @default(dbgenerated("((date_trunc('day'::text, (\"timestamp\" AT TIME ZONE 'UTC'::text)) + (('01:00:00'::interval * (div(EXTRACT(hour FROM (\"timestamp\" AT TIME ZONE 'UTC'::text)), (3)::numeric))::double precision) * (3)::double precision)) AT TIME ZONE 'UTC'::text)")) @db.Timestamptz(6)
+  hour         DateTime? @default(dbgenerated("(date_trunc('hour'::text, (\"timestamp\" AT TIME ZONE 'UTC'::text)) AT TIME ZONE 'UTC'::text)")) @db.Timestamptz(6)
+  Companies    Companies @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@id([companyId, serie, timestamp], map: "Counters_companyid_serie_timestamp_pk")
+  @@index([day], map: "index_day")
+  @@index([hour], map: "index_hour")
+  @@index([six_hours], map: "index_six_hours")
+  @@index([three_hours], map: "index_three_hours")
+  @@index([twelve_hours], map: "index_twelve_hours")
+}
+
+model Helps {
+  id          Int      @id @default(autoincrement())
+  title       String   @db.VarChar(255)
+  description String?
+  video       String?  @db.VarChar(255)
+  link        String?
+  createdAt   DateTime @db.Timestamptz(6)
+  updatedAt   DateTime @db.Timestamptz(6)
+}
+
+model Invoices {
+  id        Int        @id @default(autoincrement())
+  detail    String?    @db.VarChar(255)
+  status    String?    @db.VarChar(255)
+  value     Float?
+  createdAt DateTime   @db.Timestamptz(6)
+  updatedAt DateTime   @db.Timestamptz(6)
+  dueDate   String?    @db.VarChar(255)
+  companyId Int?
+  txId      String?    @db.VarChar(255)
+  payGw     String?    @db.VarChar(255)
+  payGwData String?
+  currency  String?    @db.VarChar(255)
+  Companies Companies? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([txId], map: "idx_txid")
+}
+
+model Messages {
+  id           String     @db.VarChar(255)
+  body         String
+  ack          Int        @default(0)
+  read         Boolean    @default(false)
+  mediaType    String?    @db.VarChar(255)
+  mediaUrl     String?    @db.VarChar(255)
+  ticketId     Int
+  createdAt    DateTime   @db.Timestamptz(6)
+  updatedAt    DateTime   @db.Timestamptz(6)
+  fromMe       Boolean    @default(false)
+  isDeleted    Boolean    @default(false)
+  contactId    Int?
+  quotedMsgId  String?    @db.VarChar(255)
+  companyId    Int?
+  remoteJid    String?
+  dataJson     String?
+  participant  String?
+  queueId      Int?
+  channel      String?    @default("whatsapp")
+  isEdited     Boolean    @default(false)
+  thumbnailUrl String?    @db.VarChar(255)
+  Companies    Companies? @relation(fields: [companyId], references: [id])
+  Contacts     Contacts?  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  Queues       Queues?    @relation(fields: [queueId], references: [id], onUpdate: SetNull)
+  Tickets      Tickets    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@id([id, ticketId], map: "Messges_id_ticketId_pk")
+  @@index([companyId, contactId], map: "idx_messages_companyid_contactid")
+  @@index([createdAt], map: "idx_messages_createdat")
+  @@index([id, fromMe], map: "idx_messages_id_fromme")
+  @@index([ticketId, companyId], map: "idx_messages_ticketid_companyid")
+  @@index([ticketId, quotedMsgId], map: "idx_messages_ticketid_quotedmsgid")
+  @@index([updatedAt], map: "idx_messages_updatedat")
+  @@index([companyId, ticketId], map: "idx_ms_company_id_ticket_id")
+}
+
+model OldMessages {
+  id        Int      @id @default(autoincrement())
+  messageId String   @db.VarChar(255)
+  body      String
+  createdAt DateTime @db.Timestamptz(6)
+  updatedAt DateTime @db.Timestamptz(6)
+  ticketId  Int?
+  Tickets   Tickets? @relation(fields: [ticketId], references: [id])
+}
+
+model OutOfTicketMessages {
+  id         String    @id @db.VarChar(255)
+  whatsappId Int
+  dataJson   String
+  createdAt  DateTime  @db.Timestamptz(6)
+  updatedAt  DateTime  @db.Timestamptz(6)
+  Whatsapps  Whatsapps @relation(fields: [whatsappId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt], map: "OutOfTicketMessages_createdAt_index")
+}
+
+model Plans {
+  id          Int         @id @default(autoincrement())
+  name        String      @unique @db.VarChar(255)
+  users       Int?        @default(0)
+  connections Int?        @default(0)
+  queues      Int?        @default(0)
+  createdAt   DateTime    @db.Timestamptz(6)
+  updatedAt   DateTime    @db.Timestamptz(6)
+  value       Float?
+  isPublic    Boolean     @default(true)
+  currency    String?     @db.VarChar(255)
+  Companies   Companies[]
+}
+
+model QueueOptions {
+  id                                         Int            @id @default(autoincrement())
+  title                                      String         @db.VarChar(255)
+  message                                    String?
+  option                                     String?
+  queueId                                    Int?
+  parentId                                   Int?
+  createdAt                                  DateTime       @db.Timestamptz(6)
+  updatedAt                                  DateTime       @db.Timestamptz(6)
+  mediaPath                                  String?        @default("")
+  mediaName                                  String?        @default("")
+  forwardQueueId                             Int?
+  exitChatbot                                Boolean?       @default(false)
+  Queues_QueueOptions_forwardQueueIdToQueues Queues?        @relation("QueueOptions_forwardQueueIdToQueues", fields: [forwardQueueId], references: [id], map: "QueueOptions_forwardQueueId_fkey1")
+  QueueOptions                               QueueOptions?  @relation("QueueOptionsToQueueOptions", fields: [parentId], references: [id], onDelete: Cascade)
+  other_QueueOptions                         QueueOptions[] @relation("QueueOptionsToQueueOptions")
+  Queues_QueueOptions_queueIdToQueues        Queues?        @relation("QueueOptions_queueIdToQueues", fields: [queueId], references: [id], onDelete: Cascade)
+  Tickets                                    Tickets[]
+}
+
+model Queues {
+  id                                               Int              @id @default(autoincrement())
+  name                                             String           @db.VarChar(255)
+  color                                            String           @db.VarChar(255)
+  greetingMessage                                  String?
+  createdAt                                        DateTime         @db.Timestamptz(6)
+  updatedAt                                        DateTime         @db.Timestamptz(6)
+  companyId                                        Int?
+  schedules                                        Json?            @default("[]")
+  outOfHoursMessage                                String?
+  mediaName                                        String?          @default("")
+  mediaPath                                        String?          @default("")
+  Messages                                         Messages[]
+  QueueOptions_QueueOptions_forwardQueueIdToQueues QueueOptions[]   @relation("QueueOptions_forwardQueueIdToQueues")
+  QueueOptions_QueueOptions_queueIdToQueues        QueueOptions[]   @relation("QueueOptions_queueIdToQueues")
+  Companies                                        Companies?       @relation(fields: [companyId], references: [id])
+  Tickets                                          Tickets[]
+  UserQueues                                       UserQueues[]
+  WhatsappQueues                                   WhatsappQueues[]
+
+  @@unique([color, companyId], map: "Queues_color_key")
+  @@unique([name, companyId], map: "Queues_name_key")
+}
+
+model QuickMessages {
+  id        Int        @id @default(autoincrement())
+  shortcode String     @db.VarChar(255)
+  message   String?
+  companyId Int?
+  createdAt DateTime   @db.Timestamptz(6)
+  updatedAt DateTime   @db.Timestamptz(6)
+  userId    Int?
+  Companies Companies? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  Users     Users?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Schedules {
+  id          Int        @id @default(autoincrement())
+  body        String
+  sendAt      DateTime?  @db.Timestamptz(6)
+  sentAt      DateTime?  @db.Timestamptz(6)
+  contactId   Int?
+  ticketId    Int?
+  userId      Int?
+  companyId   Int?
+  createdAt   DateTime   @db.Timestamptz(6)
+  updatedAt   DateTime   @db.Timestamptz(6)
+  status      String?    @db.VarChar(255)
+  saveMessage Boolean    @default(false)
+  Companies   Companies? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  Contacts    Contacts?  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  Tickets     Tickets?   @relation(fields: [ticketId], references: [id], onUpdate: SetNull)
+  Users       Users?     @relation(fields: [userId], references: [id], onUpdate: SetNull)
+
+  @@index([companyId], map: "idx_sched_company_id")
+}
+
+model SequelizeMeta {
+  name String @id @db.VarChar(255)
+}
+
+model Settings {
+  key       String     @db.VarChar(255)
+  value     String
+  createdAt DateTime   @db.Timestamptz(6)
+  updatedAt DateTime   @db.Timestamptz(6)
+  companyId Int?
+  id        Int        @id @default(autoincrement())
+  Companies Companies? @relation(fields: [companyId], references: [id])
+}
+
+model Subscriptions {
+  id                     Int        @id @default(autoincrement())
+  isActive               Boolean?   @default(false)
+  expiresAt              DateTime   @db.Timestamptz(6)
+  userPriceCents         Int?
+  whatsPriceCents        Int?
+  lastInvoiceUrl         String?    @db.VarChar(255)
+  lastPlanChange         DateTime?  @db.Timestamptz(6)
+  companyId              Int?
+  providerSubscriptionId String     @db.VarChar(255)
+  createdAt              DateTime   @db.Timestamptz(6)
+  updatedAt              DateTime   @db.Timestamptz(6)
+  Companies              Companies? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model Tags {
+  id          Int           @id @default(autoincrement())
+  name        String        @db.VarChar(255)
+  color       String?       @db.VarChar(255)
+  companyId   Int
+  createdAt   DateTime      @db.Timestamptz(6)
+  updatedAt   DateTime      @db.Timestamptz(6)
+  kanban      Int?
+  ContactTags ContactTags[]
+  Companies   Companies     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  TicketTags  TicketTags[]
+
+  @@index([companyId], map: "idx_tg_company_id")
+}
+
+model TicketNotes {
+  id        Int      @id @default(autoincrement())
+  note      String   @db.VarChar(255)
+  userId    Int?
+  contactId Int
+  ticketId  Int?
+  createdAt DateTime @db.Timestamptz(6)
+  updatedAt DateTime @db.Timestamptz(6)
+  Contacts  Contacts @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  Tickets   Tickets? @relation(fields: [ticketId], references: [id])
+  Users     Users?   @relation(fields: [userId], references: [id])
+}
+
+model TicketTags {
+  ticketId  Int
+  tagId     Int
+  createdAt DateTime @db.Timestamptz(6)
+  updatedAt DateTime @db.Timestamptz(6)
+  Tags      Tags     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  Tickets   Tickets  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@unique([ticketId, tagId], map: "unique_ticket_tag")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model TicketTraking {
+  id           Int        @id @default(autoincrement())
+  ticketId     Int?
+  companyId    Int?
+  whatsappId   Int?
+  userId       Int?
+  createdAt    DateTime?  @db.Timestamptz(6)
+  updatedAt    DateTime?  @db.Timestamptz(6)
+  queuedAt     DateTime?  @db.Timestamptz(6)
+  startedAt    DateTime?  @db.Timestamptz(6)
+  finishedAt   DateTime?  @db.Timestamptz(6)
+  ratingAt     DateTime?  @db.Timestamptz(6)
+  rated        Boolean?   @default(false)
+  expired      Boolean?   @default(false)
+  chatbotendAt DateTime?  @db.Timestamptz(6)
+  waitTime     Int?       @default(dbgenerated("\nCASE\n    WHEN ((\"chatbotendAt\" IS NOT NULL) AND (\"startedAt\" IS NOT NULL)) THEN EXTRACT(epoch FROM (\"startedAt\" - \"chatbotendAt\"))\n    WHEN ((\"queuedAt\" IS NOT NULL) AND (\"startedAt\" IS NOT NULL)) THEN EXTRACT(epoch FROM (\"startedAt\" - \"queuedAt\"))\n    WHEN ((\"createdAt\" IS NOT NULL) AND (\"startedAt\" IS NOT NULL)) THEN EXTRACT(epoch FROM (\"startedAt\" - \"createdAt\"))\n    ELSE NULL::numeric\nEND"))
+  serviceTime  Int?       @default(dbgenerated("\nCASE\n    WHEN ((\"startedAt\" IS NOT NULL) AND (\"finishedAt\" IS NOT NULL)) THEN EXTRACT(epoch FROM (\"finishedAt\" - \"startedAt\"))\n    ELSE NULL::numeric\nEND"))
+  Companies    Companies? @relation(fields: [companyId], references: [id], onUpdate: NoAction)
+  Tickets      Tickets?   @relation(fields: [ticketId], references: [id], onUpdate: NoAction)
+  Users        Users?     @relation(fields: [userId], references: [id], onUpdate: NoAction)
+  Whatsapps    Whatsapps? @relation(fields: [whatsappId], references: [id], onUpdate: NoAction)
+
+  @@index([createdAt], map: "idx_tickettraking_createdat")
+  @@index([ticketId], map: "idx_tickettraking_ticketid")
+  @@index([updatedAt], map: "idx_tickettraking_updatedat")
+}
+
+model Tickets {
+  id             Int             @id @default(autoincrement())
+  status         String          @default("pending") @db.VarChar(255)
+  lastMessage    String?         @default("")
+  contactId      Int?
+  userId         Int?
+  createdAt      DateTime        @db.Timestamptz(6)
+  updatedAt      DateTime        @db.Timestamptz(6)
+  whatsappId     Int?
+  isGroup        Boolean         @default(false)
+  unreadMessages Int?
+  queueId        Int?
+  companyId      Int?
+  uuid           String?         @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  chatbot        Boolean?        @default(false)
+  queueOptionId  Int?
+  channel        String?         @default("whatsapp")
+  Messages       Messages[]
+  OldMessages    OldMessages[]
+  Schedules      Schedules[]
+  TicketNotes    TicketNotes[]
+  TicketTags     TicketTags[]
+  TicketTraking  TicketTraking[]
+  Companies      Companies?      @relation(fields: [companyId], references: [id])
+  Contacts       Contacts?       @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  Queues         Queues?         @relation(fields: [queueId], references: [id])
+  QueueOptions   QueueOptions?   @relation(fields: [queueOptionId], references: [id], onUpdate: SetNull)
+  Users          Users?          @relation(fields: [userId], references: [id])
+  Whatsapps      Whatsapps?      @relation(fields: [whatsappId], references: [id])
+  UserRatings    UserRatings[]
+
+  @@index([createdAt], map: "idx_tickets_createdat")
+  @@index([updatedAt], map: "idx_tickets_updatedat")
+}
+
+model Translations {
+  language  String @db.VarChar(255)
+  namespace String @db.VarChar(255)
+  key       String @db.VarChar(255)
+  value     String
+
+  @@unique([language, namespace, key], map: "composite_language_namespace_key")
+  @@index([key], map: "index_key")
+  @@index([language], map: "index_language")
+  @@index([namespace], map: "index_namespace")
+}
+
+model UserQueues {
+  userId    Int
+  queueId   Int
+  createdAt DateTime @db.Timestamptz(6)
+  updatedAt DateTime @db.Timestamptz(6)
+  Queues    Queues   @relation(fields: [queueId], references: [id], onDelete: Cascade, map: "fk_userqueues_queueid")
+  Users     Users    @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_userqueues_userid")
+
+  @@id([userId, queueId])
+}
+
+model UserRatings {
+  id        Int        @id @default(autoincrement())
+  ticketId  Int?
+  companyId Int?
+  userId    Int?
+  rate      Int?       @default(0)
+  createdAt DateTime?  @db.Timestamptz(6)
+  updatedAt DateTime?  @db.Timestamptz(6)
+  Companies Companies? @relation(fields: [companyId], references: [id], onUpdate: NoAction)
+  Tickets   Tickets?   @relation(fields: [ticketId], references: [id], onUpdate: NoAction)
+  Users     Users?     @relation(fields: [userId], references: [id], onUpdate: NoAction)
+}
+
+model UserSocketSessions {
+  id        String   @id @db.VarChar(255)
+  userId    Int?
+  active    Boolean  @default(true)
+  createdAt DateTime @db.Timestamptz(6)
+  updatedAt DateTime @db.Timestamptz(6)
+  Users     Users?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model Users {
+  id                 Int                  @id @default(autoincrement())
+  name               String               @db.VarChar(255)
+  email              String               @unique @db.VarChar(255)
+  passwordHash       String               @db.VarChar(255)
+  createdAt          DateTime             @db.Timestamptz(6)
+  updatedAt          DateTime             @db.Timestamptz(6)
+  profile            String               @default("admin") @db.VarChar(255)
+  tokenVersion       Int                  @default(0)
+  companyId          Int?
+  super              Boolean?             @default(false)
+  ChatMessages       ChatMessages[]
+  ChatUsers          ChatUsers[]
+  Chats              Chats[]
+  QuickMessages      QuickMessages[]
+  Schedules          Schedules[]
+  TicketNotes        TicketNotes[]
+  TicketTraking      TicketTraking[]
+  Tickets            Tickets[]
+  UserQueues         UserQueues[]
+  UserRatings        UserRatings[]
+  UserSocketSessions UserSocketSessions[]
+  Companies          Companies?           @relation(fields: [companyId], references: [id])
+}
+
+model Wavoips {
+  id         Int       @id @default(autoincrement())
+  token      String
+  whatsappId Int       @unique
+  createdAt  DateTime  @db.Timestamptz(6)
+  updatedAt  DateTime  @db.Timestamptz(6)
+  Whatsapps  Whatsapps @relation(fields: [whatsappId], references: [id], onDelete: Cascade)
+}
+
+model WhatsappLidMaps {
+  id        Int      @id @default(autoincrement())
+  lid       String   @db.VarChar(255)
+  companyId Int
+  contactId Int
+  createdAt DateTime @db.Timestamptz(6)
+  updatedAt DateTime @db.Timestamptz(6)
+  Contacts  Contacts @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([lid, companyId], map: "unique_lid_companyId")
+  @@index([companyId], map: "whatsapp_lid_maps_company_id")
+  @@index([lid], map: "whatsapp_lid_maps_lid")
+}
+
+model WhatsappQueues {
+  whatsappId Int
+  queueId    Int
+  createdAt  DateTime  @db.Timestamptz(6)
+  updatedAt  DateTime  @db.Timestamptz(6)
+  Queues     Queues    @relation(fields: [queueId], references: [id], onDelete: Cascade, map: "fk_whatsappqueues_queueid")
+  Whatsapps  Whatsapps @relation(fields: [whatsappId], references: [id], onDelete: Cascade, map: "fk_whatsappqueues_whatsappid")
+
+  @@id([whatsappId, queueId])
+}
+
+model Whatsapps {
+  id                  Int                   @id @default(autoincrement())
+  session             String?
+  qrcode              String?
+  status              String?               @db.VarChar(255)
+  battery             String?               @db.VarChar(255)
+  plugged             Boolean?
+  createdAt           DateTime              @db.Timestamptz(6)
+  updatedAt           DateTime              @db.Timestamptz(6)
+  name                String                @db.VarChar(255)
+  isDefault           Boolean               @default(false)
+  retries             Int                   @default(0)
+  greetingMessage     String?
+  companyId           Int?
+  complationMessage   String?
+  outOfHoursMessage   String?
+  ratingMessage       String?
+  token               String?
+  farewellMessage     String?
+  provider            String?               @default("stable")
+  channel             String                @default("whatsapp") @db.VarChar(255)
+  facebookUserToken   String?
+  tokenMeta           String?
+  facebookPageUserId  String?
+  facebookUserId      String?
+  transferMessage     String?
+  language            String?               @db.VarChar(255)
+  BaileysKeys         BaileysKeys[]
+  Campaigns           Campaigns[]
+  OutOfTicketMessages OutOfTicketMessages[]
+  TicketTraking       TicketTraking[]
+  Tickets             Tickets[]
+  Wavoips             Wavoips?
+  WhatsappQueues      WhatsappQueues[]
+  Companies           Companies?            @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId, name], map: "company_name_constraint")
+}
