@@ -1,0 +1,10 @@
+.docker
+*~
+/.project
+
+/nginx/.env
+*/.env.prod
+*/.env.dev
+
+/redis_data
+/postgres_data

@@ -1,0 +1,51 @@
+services:
+  backend:
+    build: ./backend
+    env_file: [./backend/.env]
+    container_name: backend
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+      - redis
+    command: sh -c "npm install && npm run generate:i18nkeys && npm run dev:server"
+
+  frontend:
+    build: ./frontend
+    container_name: frontend
+    env_file: [./frontend/.env]
+    working_dir: /app
+    # volumes:
+    #   - ./frontend:/app
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    command: sh -c "npm install && npm start"
+
+  db:
+    image: postgres:16-alpine
+    container_name: database
+    environment:
+      POSTGRES_DB: dbtest
+      POSTGRES_USER: integracore
+      POSTGRES_PASSWORD: U789@2AbQh%x
+    # volumes:
+    #   - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    # volumes:
+    #   - redis_data:/data
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_data:
+  redis_data:

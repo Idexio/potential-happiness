@@ -1,0 +1,60 @@
+services:
+  backend:
+    build: ./backend
+    container_name: backend
+    env_file: [./backend/.env]
+    restart: always
+    depends_on:
+      - db
+      - redis
+    command: sh -c "npm install && entrypoint.sh"
+
+  frontend:
+    build: ./frontend
+    container_name: frontend
+    env_file: [./frontend/.env]
+    restart: always
+    depends_on:
+      - backend
+    command: sh -c "npm install && entrypoint.sh"
+
+  proxy:
+    image: nginx:1.27-alpine
+    container_name: nginx
+    volumes:
+      - ./frontend/dist:/usr/share/nginx/html:ro
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - certs:/etc/letsencrypt
+    env_file: [./nginx/.env]
+    ports:
+      - "80:80"
+      - "443:443"
+    restart: always
+    depends_on:
+      - frontend
+      - backend
+
+  certbot:
+    image: certbot/certbot:latest
+    container_name: certbot
+    volumes:
+      - certs:/etc/letsencrypt
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    entrypoint: /bin/sh
+    command: -c "sleep 5 && certbot certonly --webroot -w /var/www/certbot -d ${DOMAIN} --email ${ADMIN_EMAIL} --agree-tos --non-interactive || true"
+    depends_on:
+      - proxy
+
+  db:
+    image: postgres:16-alpine
+    container_name: db
+    environment:
+      POSTGRES_DB: dbname
+      POSTGRES_USER: dbuser
+      POSTGRES_PASSWORD: dbpass
+    restart: always
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: always

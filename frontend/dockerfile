@@ -1,0 +1,17 @@
+# Stage 1: Build
+FROM node:latest
+
+# Diretório de trabalho
+WORKDIR /app
+
+# Copia o restante do código
+COPY . .
+
+# Instala dependências de produção
+RUN npm install
+
+# Tornar o script executável
+RUN chmod +x entrypoint.sh
+
+# Porta exposta
+EXPOSE 80
